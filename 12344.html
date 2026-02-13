@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🗳️ Votación Estudiantes - 1000 Alumnos</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            max-width: 1400px; margin: 0 auto; 
+            padding: 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        .header { 
+            text-align: center; 
+            color: white; 
+            margin-bottom: 30px; 
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        .container { 
+            background: white; 
+            border-radius: 20px; 
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1); 
+            overflow: hidden;
+            margin-bottom: 20px;
+        }
+        .section { 
+            padding: 30px; 
+            border-bottom: 1px solid #eee; 
+        }
+        .section:last-child { border-bottom: none; }
+        h2 { color: #333; margin-bottom: 20px; font-size: 1.5em; }
+        .form-group { display: flex; gap: 15px; flex-wrap: wrap; align-items: end; margin-bottom: 20px; }
+        input, button { 
+            padding: 15px; 
+            border: 2px solid #ddd; 
+            border-radius: 12px; 
+            font-size: 16px; 
+            transition: all 0.3s;
+        }
+        input:focus { outline: none; border-color: #667eea; box-shadow: 0 0 0 3px rgba(102,126,234,0.1); }
+        button { 
+            background: linear-gradient(45deg, #667eea, #764ba2); 
+            color: white; 
+            border: none; 
+            cursor: pointer; 
+            font-weight: bold;
+            min-width: 150px;
+        }
+        button:hover { transform: translateY(-2px); box-shadow: 0 10px 20px rgba(0,0,0,0.2); }
+        button:disabled { background: #ccc; cursor: not-allowed; transform: none; }
+        .candidato { 
+            border: 3px solid #e9ecef; 
+            padding: 25px; 
+            margin: 15px 0; 
+            border-radius: 15px; 
+            text-align: center; 
+            cursor: pointer; 
+            transition: all 0.3s;
+            background: white;
+            position: relative;
+            overflow: hidden;
+        }
+        .candidato::before {
+            content: ''; position: absolute; top: 0; left: 0; right: 0; height: 4px;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+        }
+        .candidato:hover { 
+            transform: translateY(-5px); 
+            box-shadow: 0 15px 30px rgba(0,0,0,0.1); 
+            border-color: #667eea;
+        }
+        .candidato.votado { 
+            border-color: #28a745; 
+            background: linear-gradient(135deg, #d4edda, #c3e6cb);
+        }
+        .candidato.votado::before { background: #28a745; }
+        .candidato img { 
+            width: 100px; height: 100px; 
+            border-radius: 50%; 
+            object-fit: cover; 
+            margin-bottom: 15px;
+            border: 4px solid white;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+        .stats { 
+            display: flex; 
+            justify-content: space-around; 
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white; 
+            padding: 20px; 
+            border-radius: 15px;
+            margin: 20px 0;
+            text-align: center;
+        }
+        .stat { font-size: 1.3em; font-weight: bold; }
+        .graficos { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; padding: 30px 0; }
+        canvas { background: white; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
+        @media (max-width: 768px) {
+            .graficos { grid-template-columns: 1fr; }
+            .form-group { flex-direction: column; }
+            input, button { width: 100%; }
+        }
+        .reset-btn { 
+            background: linear-gradient(45deg, #ff6b6b, #ee5a24) !important; 
+            margin: 20px 0;
+            font-size: 18px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🗳️ Votación Estudiantes</h1>
+        <p>Representante de Curso - ¡Un voto por dispositivo!</p>
+    </div>
+
+    <div class="container">
+        <div class="section">
+            <h2>👨‍🎓 Agregar Candidatos</h2>
+            <div class="form-group">
+                <input type="text" id="nombreCandidato" placeholder="Nombre completo del estudiante">
+                <input type="file" id="imagenCandidato" accept="image/*">
+                <button onclick="agregarCandidato()">➕ Agregar Tarjetón</button>
+            </div>
+            <div id="listaCandidatos"></div>
+        </div>
+
+        <div class="section">
+            <h2>🗳️ Votar (1 vez por celular/PC)</h2>
+            <div id="tarjetasVotacion"></div>
+        </div>
+
+        <div class="section">
+            <div class="stats">
+                <div class="stat" id="totalVotos">Total votos: 0</div>
+                <div class="stat" id="totalCandidatos">Candidatos: 0</div>
+                <div class="stat" id="porcentajeVotacion">0% votaron</div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>📊 Resultados en Vivo</h2>
+            <div class="graficos">
+                <canvas id="graficoBarras"></canvas>
+                <canvas id="graficoPie"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <div style="text-align: center; padding: 20px;">
+        <button class="reset-btn" onclick="reiniciarTodo()" style="font-size: 18px;">🔄 REINICIAR TODO (Nueva votación)</button>
+        <p style="color: #666; margin-top: 10px; font-size: 14px;">
+            Comparte esta URL con tus 1000 estudiantes: <strong>netlify.app</strong>
+        </p>
+    </div>
+
+    <script>
+        let candidatos = JSON.parse(localStorage.getItem('candidatosVotacion')) || [];
+        let votos = JSON.parse(localStorage.getItem('votosVotacion')) || {};
+        let chartBar = null, chartPie = null;
+
+        function guardarDatos() {
+            localStorage.setItem('candidatosVotacion', JSON.stringify(candidatos));
+            localStorage.setItem('votosVotacion', JSON.stringify(votos));
+        }
+
+        function cargarCandidatos() {
+            const lista = document.getElementById('listaCandidatos');
+            const tarjetas = document.getElementById('tarjetasVotacion');
+            lista.innerHTML = '';
+            tarjetas.innerHTML = '';
+
+            candidatos.forEach((cand, index) => {
+                // Gestión de candidatos
+                const divGest = document.createElement('div');
+                divGest.className = 'candidato';
+                divGest.innerHTML = `
+                    <img src="${cand.imagen || 'https://via.placeholder.com/100x100/667eea/ffffff?text=?'}">
+                    <h3>${cand.nombre}</h3>
+                    <button onclick="eliminarCandidato(${index})" style="background:#ff6b6b;color:white;border:none;padding:8px 15px;border-radius:20px;cursor:pointer;margin-top:10px;">❌ Eliminar</button>
+                `;
+                lista.appendChild(divGest);
+
+                // Tarjetas votación
+                const tarjetaVoto = document.createElement('div');
+                tarjetaVoto.className = 'candidato';
+                tarjetaVoto.onclick = () => votar(index);
+                tarjetaVoto.innerHTML = `
+                    <img src="${cand.imagen || 'https://via.placeholder.com/100x100/667eea/ffffff?text=?'}">
+                    <h3>${cand.nombre}</h3>
+                    <div style="font-size:20px;font-weight:bold;color:#28a745;">${votos[cand.nombre] || 0} votos</div>
+                `;
+                if (votos[cand.nombre]) tarjetaVoto.classList.add('votado');
+                tarjetas.appendChild(tarjetaVoto);
+            });
+
+            actualizarStats();
+            actualizarGraficos();
+        }
+
+        function agregarCandidato() {
+            const nombre = document.getElementById('nombreCandidato').value.trim();
+            const file = document.getElementById('imagenCandidato').files[0];
+            
+            if (!nombre) {
+                alert('⚠️ Ingresa el nombre del candidato');
+                return;
+            }
+            if (candidatos.find(c => c.nombre === nombre)) {
+                alert('⚠️ Ya existe este candidato');
+                return;
+            }
+
+            let imagen = 'https://via.placeholder.com/100x100/667eea/ffffff?text=?';
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    imagen = e.target.result;
+                    candidatos.push({ nombre, imagen });
+                    guardarDatos();
+                    document.getElementById('nombreCandidato').value = '';
+                    document.getElementById('imagenCandidato').value = '';
+                    cargarCandidatos();
+                };
+                reader.readAsDataURL(file);
+            } else {
+                candidatos.push({ nombre, imagen });
+                guardarDatos();
+                document.getElementById('nombreCandidato').value = '';
+                cargarCandidatos();
+            }
+        }
+
+        function eliminarCandidato(index) {
+            if (confirm(`¿Eliminar ${candidatos[index].nombre}?`)) {
+                const nombre = candidatos[index].nombre;
+                candidatos.splice(index, 1);
+                delete votos[nombre];
+                guardarDatos();
+                cargarCandidatos();
+            }
+        }
+
+        function votar(index) {
+            const nombre = candidatos[index].nombre;
+            if (localStorage.getItem('haVotado') === 'true') {
+                alert('✅ Ya votaste. ¡Gracias por participar!');
+                return;
+            }
+            
+            votos[nombre] = (votos[nombre] || 0) + 1;
+            localStorage.setItem('haVotado', 'true');
+            guardarDatos();
+            cargarCandidatos();
+            alert(`✅ ¡Voto registrado para ${nombre}! Gracias 🙌`);
+        }
+
+        function actualizarStats() {
+            const totalVotos = Object.values(votos).reduce((a, b) => a + b, 0);
+            const totalCandidatosNum = candidatos.length;
+            const porcentaje = totalCandidatosNum ? Math.round((totalVotos / 1000) * 100) : 0;
+            
+            document.getElementById('totalVotos').textContent = `Total votos: ${totalVotos}`;
+            document.getElementById('totalCandidatos').textContent = `Candidatos: ${totalCandidatosNum}`;
+            document.getElementById('porcentajeVotacion').textContent = `${porcentaje}% votaron`;
+        }
+
+        function actualizarGraficos() {
+            const ctxBar = document.getElementById('graficoBarras').getContext('2d');
+            const ctxPie = document.getElementById('graficoPie').getContext('2d');
+            const labels = candidatos.map(c => c.nombre);
+            const data = labels.map(n => votos[n] || 0);
+
+            if (chartBar) chartBar.destroy();
+            chartBar = new Chart(ctxBar, {
+                type: 'bar',
+                data: {
+                    labels,
+                    datasets: [{
+                        label: 'Votos',
+                        data,
+                        backgroundColor: 'rgba(102, 126, 234, 0.8)',
+                        borderColor: 'rgba(102, 126, 234, 1)',
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: { legend: { display: false } },
+                    scales: { y: { beginAtZero: true } }
+                }
+            });
+
+            if (chartPie) chartPie.destroy();
+            chartPie = new Chart(ctxPie, {
+                type: 'doughnut',
+                data: {
+                    labels,
+                    datasets: [{
+                        data,
+                        backgroundColor: [
+                            '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', 
+                            '#9966FF', '#FF9F40', '#FF6384', '#C9CBCF'
+                        ],
+                        borderWidth: 3,
+                        borderColor: '#fff'
+                    }]
+                },
+                options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
+            });
+        }
+
+        function reiniciarTodo() {
+            if (confirm('⚠️ ¿REINICIAR TODOS los votos y candidatos? Esto borrará todo.')) {
+                localStorage.clear();
+                candidatos = [];
+                votos = {};
+                cargarCandidatos();
+            }
+        }
+
+        // Inicializar
+        window.onload = () => {
+            cargarCandidatos();
+        };
+    </script>
+</body>
+</html>
